@@ -1,1 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuraArt | AI Image Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 20px;
+            z-index: 1;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+            width: 100%;
+            background: rgba(25, 25, 50, 0.6);
+            border-radius: 25px;
+            margin-top: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(101, 200, 255, 0.15) 0%, transparent 70%);
+            z-index: -1;
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.7;
+            color: #d0d0ff;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            width: 100%;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .input-section {
+            background: rgba(25, 25, 50, 0.6);
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .output-section {
+            background: rgba(25, 25, 50, 0.6);
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #4facfe;
+            text-align: center;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .prompt-input {
+            width: 100%;
+            height: 180px;
+            padding: 20px;
+            border-radius: 18px;
+            border: 2px solid #4facfe;
+            background: rgba(0, 0, 0, 0.25);
+            color: white;
+            font-size: 1.2rem;
+            resize: none;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+        
+        .prompt-input:focus {
+            outline: none;
+            border-color: #00f2fe;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+            background: rgba(0, 0, 0, 0.35);
+        }
+        
+        .prompt-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .options-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .option-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .option-label {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: #a0d2ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .style-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+        
+        .style-option {
+            background: rgba(79, 172, 254, 0.15);
+            border: 1px solid rgba(79, 172, 254, 0.5);
+            padding: 15px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .style-option:hover {
+            background: rgba(79, 172, 254, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.2);
+        }
+        
+        .style-option.active {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: #0f172a;
+            font-weight: 600;
+            border-color: #00f2fe;
+            box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
+        }
+        
+        .style-icon {
+            font-size: 1.8rem;
+        }
+        
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: #0f172a;
+            border: none;
+            padding: 18px 30px;
+            font-size: 1.3rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 242, 254, 0.6);
+        }
+        
+        .generate-btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .image-container {
+            width: 100%;
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 2px dashed #4facfe;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .image-container.hover {
+            border-color: #00f2fe;
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.3);
+        }
+        
+        #generatedImage {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 12px;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            object-fit: contain;
+        }
+        
+        .placeholder-content {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 400px;
+        }
+        
+        .placeholder-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: rgba(79, 172, 254, 0.5);
+        }
+        
+        .placeholder-text {
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            justify-content: center;
+            border-radius: 20px;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 5px solid #00f2fe;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 1.3rem;
+            color: #a0d2ff;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            max-width: 200px;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #00c9ff, #92fe9d);
+            color: #0f172a;
+        }
+        
+        .share-btn {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .examples {
+            width: 100%;
+            background: rgba(25, 25, 50, 0.6);
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        
+        .example-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 25px;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid rgba(79, 172, 254, 0.2);
+        }
+        
+        .example-card:hover {
+            transform: translateY(-10px);
+            background: rgba(79, 172, 254, 0.15);
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.2);
+        }
+        
+        .example-image {
+            width: 100%;
+            height: 180px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .example-image i {
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .example-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4facfe;
+        }
+        
+        .example-prompt {
+            font-size: 1rem;
+            color: #d0d0ff;
+            line-height: 1.6;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            width: 100%;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: #a0d2ff;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-link:hover {
+            color: #00f2fe;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 3rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .input-section, .output-section, .examples {
+                padding: 30px 20px;
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+        }
+        
+        /* Animation for generated image */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        /* Floating animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-robot"></i> NEURA<span style="color:#00f2fe">ART</span></h1>
+            <p class="subtitle">Transform your imagination into stunning visuals with our advanced AI image generation technology. Describe anything you can think of, and watch it come to life.</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title"><i class="fas fa-pencil-alt"></i> CREATE YOUR VISION</h2>
+                <textarea class="prompt-input" id="promptInput" placeholder="Describe the image you want to create in detail... Example: 'A futuristic cityscape at sunset with flying cars and neon-lit skyscrapers, cyberpunk style, 4k detailed'"></textarea>
+                
+                <div class="controls">
+                    <div class="options-row">
+                        <div class="option-group">
+                            <div class="option-label">
+                                <i class="fas fa-palette"></i> Art Style
+                            </div>
+                            <div class="style-options">
+                                <div class="style-option active" data-style="realistic">
+                                    <i class="fas fa-mountain style-icon"></i>
+                                    <span>Realistic</span>
+                                </div>
+                                <div class="style-option" data-style="oil-painting">
+                                    <i class="fas fa-brush style-icon"></i>
+                                    <span>Oil Painting</span>
+                                </div>
+                                <div class="style-option" data-style="anime">
+                                    <i class="fas fa-dragon style-icon"></i>
+                                    <span>Anime</span>
+                                </div>
+                                <div class="style-option" data-style="pixel-art">
+                                    <i class="fas fa-gamepad style-icon"></i>
+                                    <span>Pixel Art</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-group">
+                            <div class="option-label">
+                                <i class="fas fa-sliders-h"></i> Creativity Level
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" min="1" max="10" value="7" class="slider" id="creativitySlider">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #a0d2ff;">
+                                    <span>Precise</span>
+                                    <span>Creative</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="generate-btn" id="generateBtn">
+                        <i class="fas fa-magic"></i> GENERATE ARTWORK
+                    </button>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <h2 class="section-title"><i class="fas fa-image"></i> YOUR GENERATED ART</h2>
+                <div class="image-container" id="imageContainer">
+                    <div class="placeholder-content">
+                        <i class="fas fa-cloud-download-alt placeholder-icon floating"></i>
+                        <p class="placeholder-text">Your AI-generated masterpiece will appear here. Enter a detailed description and click "Generate Artwork" to begin.</p>
+                    </div>
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Neural networks are crafting your vision...<br>This usually takes 10-20 seconds</p>
+                    </div>
+                    <img id="generatedImage" alt="Generated image based on your prompt">
+                </div>
+                
+                <div class="actions">
+                    <button class="action-btn download-btn" id="downloadBtn">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button class="action-btn share-btn" id="shareBtn">
+                        <i class="fas fa-share-alt"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="examples">
+            <h2 class="section-title"><i class="fas fa-lightbulb"></i> INSPIRATION GALLERY</h2>
+            <p style="text-align: center; margin-bottom: 20px; color: #d0d0ff;">Try these examples to see what our AI can create:</p>
+            
+            <div class="examples-grid">
+                <div class="example-card" data-prompt="A cyberpunk cityscape at night with neon signs, flying cars, and rain-soaked streets">
+                    <div class="example-image">
+                        <i class="fas fa-city"></i>
+                    </div>
+                    <div class="example-title">
+                        <i class="fas fa-laptop-code"></i> Neon Metropolis
+                    </div>
+                    <p class="example-prompt">Cyberpunk cityscape at night with neon signs, flying cars, and rain-soaked streets</p>
+                </div>
+                
+                <div class="example-card" data-prompt="A mystical forest with giant glowing mushrooms, bioluminescent plants, and floating islands">
+                    <div class="example-image">
+                        <i class="fas fa-tree"></i>
+                    </div>
+                    <div class="example-title">
+                        <i class="fas fa-magic"></i> Enchanted Forest
+                    </div>
+                    <p class="example-prompt">Mystical forest with giant glowing mushrooms and floating islands</p>
+                </div>
+                
+                <div class="example-card" data-prompt="A steampunk airship flying over a desert landscape with brass gears and mechanical details">
+                    <div class="example-image">
+                        <i class="fas fa-ship"></i>
+                    </div>
+                    <div class="example-title">
+                        <i class="fas fa-cogs"></i> Steampunk Voyager
+                    </div>
+                    <p class="example-prompt">Steampunk airship flying over a desert landscape with brass gears</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="footer-links">
+                <a href="#" class="footer-link"><i class="fas fa-book"></i> Documentation</a>
+                <a href="#" class="footer-link"><i class="fas fa-users"></i> Community</a>
+                <a href="#" class="footer-link"><i class="fas fa-star"></i> Premium Features</a>
+                <a href="#" class="footer-link"><i class="fas fa-question-circle"></i> Support</a>
+            </div>
+            <p>© 2023 NeuraArt AI Image Generator. All AI-generated images are royalty-free for personal use.</p>
+            <p>Powered by advanced neural networks and deep learning algorithms.</p>
+        </footer>
+    </div>
 
+    <script>
+        // Initialize particles background
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 60; i++) {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = `${Math.random() * 5 + 2}px`;
+            particle.style.height = particle.style.width;
+            particle.style.background = `rgba(79, 172, 254, ${Math.random() * 0.4 + 0.1})`;
+            particle.style.borderRadius = '50%';
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            particle.style.boxShadow = '0 0 10px rgba(79, 172, 254, 0.5)';
+            particle.style.animation = `float ${Math.random() * 10 + 10}s linear infinite`;
+            particle.style.animationDelay = `${Math.random() * 5}s`;
+            particlesContainer.appendChild(particle);
+        }
+        
+        // Select elements
+        const promptInput = document.getElementById('promptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const generatedImage = document.getElementById('generatedImage');
+        const imageContainer = document.getElementById('imageContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const styleOptions = document.querySelectorAll('.style-option');
+        const exampleCards = document.querySelectorAll('.example-card');
+        const creativitySlider = document.getElementById('creativitySlider');
+        
+        // Current selected style
+        let selectedStyle = 'realistic';
+        let creativityLevel = 7;
+        
+        // Set up style selection
+        styleOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove active class from all options
+                styleOptions.forEach(opt => opt.classList.remove('active'));
+                
+                // Add active class to clicked option
+                option.classList.add('active');
+                
+                // Update selected style
+                selectedStyle = option.dataset.style;
+            });
+        });
+        
+        // Set up example cards
+        exampleCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const prompt = card.dataset.prompt;
+                promptInput.value = prompt;
+                promptInput.focus();
+            });
+        });
+        
+        // Set up creativity slider
+        creativitySlider.addEventListener('input', () => {
+            creativityLevel = creativitySlider.value;
+        });
+        
+        // Image generation function
+        async function generateImage() {
+            const prompt = promptInput.value.trim();
+            
+            if (!prompt) {
+                showNotification('Please enter a description for the image', 'error');
+                return;
+            }
+            
+            // Show loading indicator
+            imageContainer.querySelector('.placeholder-content').style.display = 'none';
+            loadingIndicator.style.display = 'flex';
+            generatedImage.style.display = 'none';
+            downloadBtn.disabled = true;
+            shareBtn.disabled = true;
+            
+            try {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 2500));
+                
+                // In a real implementation, you would call an actual AI image generation API here
+                // For this demo, we'll use a placeholder service that returns a themed image
+                const styleParam = selectedStyle.replace('-', '');
+                const imgUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(prompt)}`;
+                
+                // Set the image source
+                generatedImage.onload = () => {
+                    loadingIndicator.style.display = 'none';
+                    generatedImage.style.display = 'block';
+                    generatedImage.classList.add('fade-in');
+                    downloadBtn.disabled = false;
+                    shareBtn.disabled = false;
+                    
+                    // Change container style
+                    imageContainer.classList.add('hover');
+                    
+                    // Show success notification
+                    showNotification('Your artwork has been generated successfully!', 'success');
+                };
+                
+                generatedImage.src = imgUrl;
+                
+            } catch (error) {
+                console.error('Error generating image:', error);
+                loadingIndicator.style.display = 'none';
+                imageContainer.querySelector('.placeholder-content').style.display = 'flex';
+                downloadBtn.disabled = true;
+                shareBtn.disabled = true;
+                showNotification('Error generating image. Please try again.', 'error');
+            }
+        }
+        
+        // Set up generate button
+        generateBtn.addEventListener('click', generateImage);
+        
+        // Set up download button
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = generatedImage.src;
+            link.download = `neuraart-${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification('Image downloaded successfully!', 'success');
+        });
+        
+        // Set up share button
+        shareBtn.addEventListener('click', () => {
+            showNotification('Sharing feature would be enabled in production', 'info');
+        });
+        
+        // Allow pressing Enter in the textarea to generate
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateImage();
+            }
+        });
+        
+        // Notification function
+        function showNotification(message, type) {
+            // Remove existing notifications
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+            
+            document.body.appendChild(notification);
+            
+            // Position and animate
+            setTimeout(() => {
+                notification.style.bottom = '30px';
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Remove after delay
+            setTimeout(() => {
+                notification.style.bottom = '-100px';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.remove();
+                }, 500);
+            }, 3000);
+        }
+        
+        // Add notification styles
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .notification {
+                position: fixed;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: -100px;
+                padding: 18px 35px;
+                border-radius: 15px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                z-index: 1000;
+                opacity: 0;
+                transition: all 0.5s ease;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            }
+            
+            .success {
+                background: rgba(40, 167, 69, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .error {
+                background: rgba(220, 53, 69, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .info {
+                background: rgba(23, 162, 184, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
